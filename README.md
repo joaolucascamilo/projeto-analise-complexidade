@@ -2,7 +2,7 @@
 
 **Foco:** Deslocamento estratégico entre o Cine São Luiz (Centro) e a Faculdade Nova Roma (Boa Viagem).
 
-**Equipe:** João Lucas Camilo Ramos, Diego Henrique Moreira Galvão, Ana Beatriz Vieira de Melo, Adauto Paes e Juliano Freitas.
+**Equipe:** João Lucas Camilo Ramos, Diego Henrique Moreira Galvão, Ana Beatriz Vieira de Melo, Adauto Paes, Juliano Freitas e Jhonata Freitas.
 
 ## 1. Introdução
 
