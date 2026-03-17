@@ -146,6 +146,104 @@ else:
     print(f"   carro é ~{diff:.1f} min mais rápido")
 
 # ==========================================
+# 5b. ROTAS A PÉ (CAMINHADA)
+# ==========================================
+print("\n5b. Baixando o grafo de pedestres e calculando rotas a pé...")
+
+# Grafo separado para pedestres (inclui calçadas, caminhos e passagens)
+graph_walk = ox.graph_from_point(coords_origem, dist=8000, network_type='walk')
+
+# Velocidade média de caminhada: 5 km/h = 1.389 m/s
+velocidade_caminhada_ms = 5 / 3.6
+
+# Injeta o tempo de caminhada como peso em cada aresta
+for u, v, key, data in graph_walk.edges(keys=True, data=True):
+    distancia = data.get('length', 1)
+    data['tempo_caminhada'] = distancia / velocidade_caminhada_ms
+
+# Localiza os nós mais próximos de origem/destino no grafo de pedestres
+no_origem_walk  = ox.distance.nearest_nodes(graph_walk, X=-34.88269, Y=-8.06374)
+no_destino_walk = ox.distance.nearest_nodes(graph_walk, X=-34.90017, Y=-8.11782)
+
+# ---- função auxiliar: calcula tempo de uma rota no grafo walk (MultiDiGraph) ----
+def tempo_rota_walk(g, rota):
+    total = 0.0
+    for u, v in zip(rota[:-1], rota[1:]):
+        edge_data = g.get_edge_data(u, v)
+        if edge_data:
+            melhor = min(edge_data.values(), key=lambda d: d.get('tempo_caminhada', float('inf')))
+            total += melhor.get('tempo_caminhada', 0)
+    return total
+
+# ---- função auxiliar: concatena sub-rotas passando por waypoints ----
+def rota_via_waypoints(g, waypoints):
+    rota_completa = []
+    for origem_wp, destino_wp in zip(waypoints[:-1], waypoints[1:]):
+        trecho = nx.shortest_path(g, source=origem_wp, target=destino_wp, weight='tempo_caminhada')
+        if rota_completa:
+            trecho = trecho[1:]  # evita nó duplicado na junção
+        rota_completa.extend(trecho)
+    return rota_completa
+
+rotas_caminhada = []
+
+# ---- função auxiliar: encontra nó em rua pelo nome (OSM), mais próximo de (lat_ref, lon_ref) ----
+def no_na_rua(g, nome_rua, lat_ref, lon_ref):
+    import math
+    nome_lower = nome_rua.lower()
+    candidatos = set()
+    for u, v, data in g.edges(data=True):
+        name = data.get('name', '')
+        nomes = [name] if isinstance(name, str) else (name if isinstance(name, list) else [])
+        if any(nome_lower in n.lower() for n in nomes):
+            candidatos.add(u)
+            candidatos.add(v)
+    if not candidatos:
+        return None
+    def dist(node):
+        nd = g.nodes[node]
+        return math.hypot(nd['y'] - lat_ref, nd['x'] - lon_ref)
+    return min(candidatos, key=dist)
+
+# --- Rota 1: via Av. Eng. Domingos Ferreira ---
+# Traçado Google: Cinco Pontas → Av. José Estelita → Av. Saturnino de Brito
+#                 → Ponte Paulo Guerra → Av. Herculano Bandeira → Av. Domingos Ferreira
+wp_domingos = no_na_rua(graph_walk, 'Domingos Ferreira', lat_ref=-8.108, lon_ref=-34.900)
+
+if wp_domingos:
+    waypoints_rota1 = [no_origem_walk, wp_domingos, no_destino_walk]
+else:
+    print("   [aviso] Av. Domingos Ferreira não encontrada no grafo OSM.")
+    waypoints_rota1 = [no_origem_walk, no_destino_walk]
+
+rota1 = rota_via_waypoints(graph_walk, waypoints_rota1)
+tempo1 = tempo_rota_walk(graph_walk, rota1)
+rotas_caminhada.append((rota1, tempo1))
+print(f"-> Rota a pé 1 (Av. Domingos Ferreira): {tempo1 / 60:.0f} min  ({tempo1 / 3600:.2f} h)")
+
+# --- Rota 2: via Av. Sul Gov. Cid Sampaio → PE-008 → Av. Mal. Mascarenhas de Morais ---
+# Traçado Google: R. da Concórdia → R. Imperial → Av. Sul Gov. Cid Sampaio
+#                 → Pte. Motocolombó/PE-008 → Av. Mal. Mascarenhas de Morais → R. Padre Carapuceiro
+wp_av_sul      = no_na_rua(graph_walk, 'Cid Sampaio',           lat_ref=-8.090, lon_ref=-34.895)
+wp_mascarenhas = no_na_rua(graph_walk, 'Mascarenhas de Morais', lat_ref=-8.106, lon_ref=-34.899)
+
+aviso = []
+if wp_av_sul      is None: aviso.append('Av. Sul Gov. Cid Sampaio')
+if wp_mascarenhas is None: aviso.append('Av. Mal. Mascarenhas de Morais')
+if aviso:
+    print(f"   [aviso] Não encontrado no grafo OSM: {', '.join(aviso)}")
+
+waypoints_rota2 = [no_origem_walk]
+if wp_av_sul:      waypoints_rota2.append(wp_av_sul)
+if wp_mascarenhas: waypoints_rota2.append(wp_mascarenhas)
+waypoints_rota2.append(no_destino_walk)
+
+rota2 = rota_via_waypoints(graph_walk, waypoints_rota2)
+tempo2 = tempo_rota_walk(graph_walk, rota2)
+rotas_caminhada.append((rota2, tempo2))
+print(f"-> Rota a pé 2 (Av. Sul / Mascarenhas de Morais): {tempo2 / 60:.0f} min  ({tempo2 / 3600:.2f} h)")
+
+# ==========================================
 # 6. VISUALIZAÇÃO CARTOGRÁFICA INTERATIVA
 # ==========================================
 # utilizamos apenas o folium; o grafo estático foi removido
@@ -192,6 +290,16 @@ folium.PolyLine(
     color='blue', weight=3, opacity=0.6,
     tooltip='distância'
 ).add_to(m)
+
+# camadas das rotas a pé
+cores_caminhada = ['orange', 'purple']
+for i, (rota_walk, tempo_walk) in enumerate(rotas_caminhada):
+    folium.PolyLine(
+        rota_para_latlng(graph_walk, rota_walk),
+        color=cores_caminhada[i], weight=3, opacity=0.8,
+        dash_array='8,4',
+        tooltip=f'caminhada rota {i + 1} (~{tempo_walk / 60:.0f} min)'
+    ).add_to(m)
 
 # marcadores opcionais de origem/destino
 folium.Marker(centro, tooltip='origem').add_to(m)
