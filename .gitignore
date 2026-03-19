@@ -35,3 +35,7 @@ cache/
 
 # Old files
 projeto.py
+# Arquivos de Dados GTFS e CTTU
+*.txt
+*.csv
+*.zip
