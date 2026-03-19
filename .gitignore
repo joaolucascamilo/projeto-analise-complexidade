@@ -38,4 +38,5 @@ projeto.py
 # Arquivos de Dados GTFS e CTTU
 *.txt
 *.csv
-*.zip
+*.zipmapa_rotas.html
+resources_*.csv
