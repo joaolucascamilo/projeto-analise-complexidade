@@ -32,3 +32,6 @@ cache/
 
 # Data files
 *.csv
+
+# Old files
+projeto.py

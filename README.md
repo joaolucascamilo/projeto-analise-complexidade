@@ -160,7 +160,104 @@ Diferente de grafos estáticos, a implementação prevê a reponderação de are
 - Elaboração de um relatório técnico detalhando a metodologia, os resultados e as conclusões do projeto.
 - Proposta de uma arquitetura de sistema para uma aplicação de recomendação de rotas multimodais, incluindo a descrição dos componentes e das tecnologias a serem utilizadas.
 
-## 5. Cronograma
+## 5. Implementação
+
+### 5.1. Estrutura do Projeto
+
+O código está organizado por modal de transporte, com utilitários compartilhados na pasta `utils/`:
+
+```
+src/
+├── utils/
+│   ├── grafo.py          # download OSM, injeção de pesos da CTTU
+│   ├── helpers.py        # funções auxiliares (no_na_rua, waypoints, tempo)
+│   ├── visualizacao.py   # geração do mapa interativo (Folium)
+│   ├── benchmark.py      # medição de tempo de execução
+│   └── comparacao.py     # tabela comparativa por modal (tempo, distância, custo)
+├── carro/algoritmo.py    # Dijkstra + A* com timing
+├── moto/algoritmo.py     # velocidade média de 50 km/h sobre a rota do carro
+├── bicicleta/algoritmo.py # 3 rotas: Via Mangue, Av. Boa Viagem, R. Arq. Luiz Nunes
+├── caminhada/algoritmo.py # 2 rotas: Av. Domingos Ferreira, Av. Sul / Mascarenhas
+└── onibus/algoritmo.py   # placeholder - aguardando dados GTFS do Grande Recife
+main.py                   # ponto de entrada
+```
+
+### 5.2. Como executar
+
+```bash
+# Criar e ativar ambiente virtual
+python -m venv .venv
+.venv\Scripts\activate      # Windows
+# source .venv/bin/activate # Linux/Mac
+
+# Instalar dependências
+pip -r requirements.txt
+
+# Executar
+python main.py
+```
+
+### 5.3. Algoritmos implementados
+
+| Algoritmo | Complexidade | Observação |
+|-----------|:------------:|------------|
+| Dijkstra  | O((V + E) log V) | baseline; explora nós em ordem de custo acumulado |
+| A\*       | O((V + E) log V) | usa heurística de Haversine ÷ velocidade máxima (80 km/h) para guiar a busca; expande menos nós na prática |
+
+A heurística do A\* é **admissível**: nunca superestima o custo real, garantindo a rota ótima.
+
+### 5.4. Modelagem do congestionamento
+
+O congestionamento é obtido dos dados de fotossensores da CTTU (CSV) e classificado por faixa de velocidade medida:
+
+| Nível   | Velocidade medida | Efeito no peso da aresta |
+|---------|:-----------------:|--------------------------|
+| Leve    | ≥ 50 km/h         | tempo baixo (via fluindo) |
+| Médio   | 30 – 49 km/h        | tempo moderado |
+| Pesado  | < 30 km/h         | tempo alto (congestionado) |
+
+Função de custo aplicada: `tempo = distância_metros / (velocidade_kmh / 3.6)`
+
+### 5.5. Cenários de teste
+
+O sistema executa dois cenários automaticamente a cada rodada:
+
+| Cenário | Hora CTTU | Condição esperada |
+|---------|:---------:|-------------------|
+| A – Pico manhã   | 8h  | maior congestionamento -> tempo de rota maior |
+| B – Fora de pico | 14h | fluxo mais livre -> tempo de rota menor |
+
+Ambos medem e comparam o tempo de execução de Dijkstra e A\*.
+
+### 5.6. Saída gerada
+
+**Terminal - comparativo de rotas (por cenário):**
+
+```
+Modal                               Tempo (min)   Distância (km)   Custo (R$)
+--------------------------------------------------------------------------
+Carro (mais rápido)                        18.3             9.41        6.49
+Moto                                       14.1             9.41        3.29
+Bicicleta – Via Mangue                     34.0             –           0.00
+Bicicleta – Av. Boa Viagem                 33.0             –           0.00
+Bicicleta – R. Arq. Luiz Nunes            39.0             –           0.00
+Caminhada – Av. Domingos Ferreira         120.0             –           0.00
+Ônibus (Setúbal – est.)                    34.0             –           4.30
+```
+
+**Arquivo `mapa_rotas.html`** - mapa interativo com todas as rotas sobrepostas, gerado com Folium.
+
+### 5.7. Custo financeiro estimado por modal
+
+| Modal      | Base de cálculo |
+|------------|-----------------|
+| Carro      | R$6,90/L gasolina, 10 km/L -> R$0,69/km |
+| Moto       | R$6,90/L gasolina, 20 km/L -> R$0,35/km |
+| Ônibus     | Tarifa única Recife/PE -> R$4,30 |
+| Bicicleta  | R$0,00 |
+| Caminhada  | R$0,00 |
+
+## 6. Cronograma
 
 | ETAPA | Fev | Mar | Abr | Mai | Jun |
 |-------|:---:|:---:|:---:|:---:|:---:|
@@ -169,7 +266,7 @@ Diferente de grafos estáticos, a implementação prevê a reponderação de are
 | Simulação e Análise de Resultados | | | | X | X |
 | Elaboração do Relatório Final e Proposta | | | | | X |
 
-## 6. Referências
+## 7. Referências
 
 [1] TomTom Traffic Index. (2023). Recife Traffic. Disponível em: https://www.tomtom.com/traffic-index/recife-traffic/
 
