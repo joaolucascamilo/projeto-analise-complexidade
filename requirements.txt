@@ -1,0 +1,10 @@
+osmnx
+pandas
+networkx
+folium
+matplotlib
+shapely
+geopandas
+rtree
+pyproj
+fiona
