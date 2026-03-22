@@ -1,4 +1,6 @@
 # Arquivos de Dados GTFS e CTTU
-*.txt
 *.csv
 *.zip
+
+venv
+.venv
