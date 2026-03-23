@@ -30,12 +30,8 @@ Thumbs.db
 __pycache__/
 cache/
 
-# Data files
-*.csv
-
 # Old files
 projeto.py
 # Arquivos de Dados GTFS e CTTU
 *.txt
-*.csv
 *.zipmapa_rotas.html
