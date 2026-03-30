@@ -1,10 +1,10 @@
 osmnx
 pandas
+geopandas
 networkx
 folium
-matplotlib
 shapely
-geopandas
+matplotlib
 rtree
 pyproj
 fiona
