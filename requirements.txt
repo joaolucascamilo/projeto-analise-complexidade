@@ -1,17 +1,10 @@
 osmnx
 pandas
-<<<<<<< HEAD
 geopandas
 networkx
 folium
 shapely
-=======
-networkx
-folium
 matplotlib
-shapely
-geopandas
 rtree
 pyproj
 fiona
->>>>>>> 9353575f88e2c8a0bc4a124373e69c1e78da9251
