@@ -38,6 +38,7 @@ from src.carro.algoritmo     import calcular_rotas_carro
 from src.moto.algoritmo      import calcular_rota_moto
 from src.caminhada.algoritmo import calcular_rotas_caminhada
 from src.bicicleta.algoritmo import calcular_rotas_bicicleta
+from src.onibus.algoritmo import calcular_rotas_onibus
 
 # Arquivos de dados da CTTU
 ARQUIVO_VELOCIDADE = (
@@ -104,12 +105,19 @@ def executar_cenario(graph_carro, graph_walk, graph_bike, hora, nome_cenario):
     rotas_walk, t_walk = medir_tempo(calcular_rotas_caminhada, graph_walk)
     print(f"  tempo total da função: {t_walk:.1f} ms\n")
 
+    print("[Ônibus]")
+    from src.onibus.algoritmo import calcular_rotas_onibus
+    
+    resultado_onibus = calcular_rotas_onibus(graph_walk, COORDS_ORIGEM, COORDS_DESTINO)
+    print("  Rota de ônibus calculada com sucesso.\n")
+
     # Tabela comparativa: tempo + custo por modal
     resultados_para_tabela = {
         'carro':     resultado_carro,
         'moto':      resultado_moto,
         'bicicleta': rotas_bike,
         'caminhada': rotas_walk,
+        'onibus': resultado_onibus,
     }
     gerar_tabela_comparativa(resultados_para_tabela)
 
@@ -120,6 +128,7 @@ def executar_cenario(graph_carro, graph_walk, graph_bike, hora, nome_cenario):
         'moto':           resultado_moto,
         'bicicleta':      rotas_bike,
         'caminhada':      rotas_walk,
+        'onibus':         resultado_onibus,
         'graph_c':        graph_c,
         'benchmark_algo': resultado_carro['benchmark'],
     }
