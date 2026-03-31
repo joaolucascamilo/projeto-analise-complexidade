@@ -70,7 +70,21 @@ def _linhas_caminhada(group, graph, rotas):
             dash_array='8,4',
             tooltip=f"Caminhada – {item['nome']} (~{item['tempo_min']:.0f} min)",
         ).add_to(group)
+        
 
+def _linhas_onibus(group, graph, rota_nos, tempo_min):
+    """Adiciona a linha do transporte público (multimodal) ao grupo."""
+    coords = []
+    for no in rota_nos:
+        # Extrai latitude (y) e longitude (x) dos nós reais e virtuais
+        if no in graph.nodes:
+            coords.append((graph.nodes[no]['y'], graph.nodes[no]['x']))
+
+    folium.PolyLine(
+        coords,
+        color='#8e24aa', weight=7, opacity=0.9, # Linha Roxa e grossa
+        tooltip=f'Ônibus + Caminhada (~{tempo_min:.0f} min)',
+    ).add_to(group)        
 
 # ---------------------------------------------------------------------------
 # Monta os dados do painel para cada cenário
@@ -108,9 +122,9 @@ def _dados_painel(cenarios_resultados):
                 for r in cr['caminhada']
             ],
             'onibus': {
-                'tempo_min':    34.0,
+                'tempo_min':    round(cr['onibus']['tempo_seg'] / 60, 1) if 'tempo_seg' in cr['onibus'] else 0,
                 'distancia_km': None,
-                'custo':        CUSTO_FIXO_ONIBUS,
+                'custo':        round(cr['onibus']['custo'], 2) if 'custo' in cr['onibus'] else CUSTO_FIXO_ONIBUS,
             },
         }
     return dados
@@ -242,7 +256,7 @@ def _html_painel(map_name, layers_js, dados_painel):
     {{ key: 'moto',      icone: '&#129309;', nome: 'Moto',      detalhe: 'Velocidade média 50 km/h' }},
     {{ key: 'bicicleta', icone: '&#128690;', nome: 'Bicicleta', detalhe: '3 rotas alternativas' }},
     {{ key: 'caminhada', icone: '&#128694;', nome: 'Caminhada', detalhe: '2 rotas alternativas' }},
-    {{ key: 'onibus',    icone: '&#128652;', nome: 'Ônibus',    detalhe: 'Setúbal (estimativa)', semRota: true }},
+    {{ key: 'onibus',    icone: '&#128652;', nome: 'Ônibus',    detalhe: 'Rotas Integradas (GTFS)', semRota: false }},
   ];
 
   var cenarioAtual = 'pico';
@@ -469,6 +483,18 @@ def criar_mapa_interativo(
     _linhas_caminhada(fg_walk, graph_walk, pico['caminhada'])
     fg_walk.add_to(mapa)
 
+    # FeatureGroup: ônibus
+    fg_onibus = folium.FeatureGroup(name='onibus', show=False)
+    # Verifica de forma segura se a rota existe
+    if 'rota_nós' in pico.get('onibus', {}) and pico['onibus'].get('graph_transporte') is not None:
+        _linhas_onibus(
+            fg_onibus,
+            pico['onibus']['graph_transporte'],
+            pico['onibus']['rota_nós'],
+            pico['onibus']['tempo_seg'] / 60
+        )
+    fg_onibus.add_to(mapa)
+
     # Mapa das chaves de modal para os nomes de variável JS dos FeatureGroups
     layers_js = {
         'carro_pico': fg_carro_pico.get_name(),
@@ -477,6 +503,7 @@ def criar_mapa_interativo(
         'moto_fora':  fg_moto_fora.get_name(),
         'bicicleta':  fg_bike.get_name(),
         'caminhada':  fg_walk.get_name(),
+        'onibus':     fg_onibus.get_name(),
     }
 
     # Dados de tempo/custo para o painel lateral
