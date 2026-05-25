@@ -5,6 +5,7 @@ Centraliza a criação dos grafos do OSMnx e a injeção dos pesos
 dinâmicos com base nos dados de velocidade da CTTU.
 """
 
+import os
 import warnings
 import osmnx as ox
 import pandas as pd
@@ -22,10 +23,14 @@ VELOCIDADE_PADRAO_MOTO_KMH      = 50
 VELOCIDADE_PADRAO_BICICLETA_KMH = 20
 VELOCIDADE_PADRAO_CAMINHADA_KMH = 5
 
+# Diretório onde os grafos são persistidos em disco
+CACHE_DIR_GRAFOS = './cache/grafos'
+
 
 def baixar_grafo_carro(coords_origem=COORDS_ORIGEM, dist=8000):
     """
-    Baixa o grafo viário para carros a partir do OpenStreetMap.
+    Carrega o grafo viário para carros do cache em disco (se existir)
+    ou baixa do OpenStreetMap e salva para uso futuro.
 
     Parâmetros:
         coords_origem: tupla (lat, lon) do ponto central de busca
@@ -34,15 +39,26 @@ def baixar_grafo_carro(coords_origem=COORDS_ORIGEM, dist=8000):
     Retorna:
         Grafo MultiDiGraph do OSMnx com ruas para veículos
     """
+    caminho = os.path.join(CACHE_DIR_GRAFOS, 'grafo_carro.graphml')
+
+    if os.path.exists(caminho):
+        print(f"[Grafo] Cache encontrado — carregando grafo de carro do disco ({caminho})...")
+        graph = ox.load_graphml(caminho)
+        print("Grafo viário carregado do cache com sucesso.\n")
+        return graph
+
     print("Baixando grafo viário (carros) do OpenStreetMap...")
     graph = ox.graph_from_point(coords_origem, dist=dist, network_type='drive')
-    print("Grafo viário carregado com sucesso.\n")
+    os.makedirs(CACHE_DIR_GRAFOS, exist_ok=True)
+    ox.save_graphml(graph, caminho)
+    print(f"Grafo viário carregado e salvo em cache ({caminho}).\n")
     return graph
 
 
 def baixar_grafo_pedestre(coords_origem=COORDS_ORIGEM, dist=8000):
     """
-    Baixa o grafo de pedestres a partir do OpenStreetMap.
+    Carrega o grafo de pedestres do cache em disco (se existir)
+    ou baixa do OpenStreetMap e salva para uso futuro.
     Usado tanto para caminhada quanto para bicicleta.
 
     Parâmetros:
@@ -52,9 +68,19 @@ def baixar_grafo_pedestre(coords_origem=COORDS_ORIGEM, dist=8000):
     Retorna:
         Grafo MultiDiGraph do OSMnx com caminhos para pedestres
     """
+    caminho = os.path.join(CACHE_DIR_GRAFOS, 'grafo_pedestre.graphml')
+
+    if os.path.exists(caminho):
+        print(f"[Grafo] Cache encontrado — carregando grafo de pedestres do disco ({caminho})...")
+        graph = ox.load_graphml(caminho)
+        print("Grafo de pedestres carregado do cache com sucesso.\n")
+        return graph
+
     print("Baixando grafo de pedestres do OpenStreetMap...")
     graph = ox.graph_from_point(coords_origem, dist=dist, network_type='walk')
-    print("Grafo de pedestres carregado com sucesso.\n")
+    os.makedirs(CACHE_DIR_GRAFOS, exist_ok=True)
+    ox.save_graphml(graph, caminho)
+    print(f"Grafo de pedestres carregado e salvo em cache ({caminho}).\n")
     return graph
 
 
