@@ -13,8 +13,8 @@ Referências de custo:
 """
 
 # Custo operacional por modal (R$ por km, exceto ônibus que é tarifa fixa)
-CUSTO_KM_CARRO    = 0.69   # R$/km
-CUSTO_KM_MOTO     = 0.35   # R$/km
+CUSTO_KM_CARRO    = 2.65  # R$/km
+CUSTO_KM_MOTO     = 1.35   # R$/km
 CUSTO_FIXO_ONIBUS = 4.30   # R$ (tarifa única Recife)
 CUSTO_BICICLETA   = 0.00
 CUSTO_CAMINHADA   = 0.00
