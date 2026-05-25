@@ -8,3 +8,4 @@ matplotlib
 rtree
 pyproj
 fiona
+scikit-learn
